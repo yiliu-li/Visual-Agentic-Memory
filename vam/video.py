@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
-import functools
 import json
 import os
 import shutil
@@ -11,10 +10,9 @@ import subprocess
 import tempfile
 import time
 import datetime
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, List, Optional
 
 import anyio
-import numpy as np
 
 from vam.config import get_settings
 from vam.retrieval.frame_store import get_store, cosine_distance
@@ -372,6 +370,9 @@ async def index_video_async(
     debug: bool,
     store_path: Optional[str] = None,
 ) -> str:
+    if not os.path.isfile(tmp_path):
+        raise FileNotFoundError(f"video not found: {tmp_path}")
+
     job_id = job_manager.create(phase="queued")
     job_manager.log(job_id, "queued")
 
@@ -526,5 +527,6 @@ async def index_video_async(
                 except Exception:
                     pass
 
-    asyncio.create_task(_run())
+    task = asyncio.create_task(_run())
+    job_manager.attach_task(job_id, task)
     return job_id

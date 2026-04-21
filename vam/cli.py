@@ -1,11 +1,9 @@
-import uvicorn
 import os
 import asyncio
-from vam.config import get_settings
 
 def run_tui():
     """Entry point for the terminal TUI."""
-    from tui import main
+    from vam.tui import main
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
@@ -13,6 +11,8 @@ def run_tui():
 
 def run_server():
     """Entry point for the API server."""
+    import uvicorn
+
     port = int(os.environ.get("PORT", 8000))
     is_prod = "RENDER" in os.environ or "PORT" in os.environ
     reload_env = os.environ.get("UVICORN_RELOAD")

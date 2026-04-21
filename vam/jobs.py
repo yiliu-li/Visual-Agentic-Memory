@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import threading
 import time
 import uuid
@@ -25,6 +26,7 @@ class JobManager:
     def __init__(self) -> None:
         self._lock = threading.Lock()
         self._jobs: Dict[str, Job] = {}
+        self._tasks: Dict[str, asyncio.Task[Any]] = {}
         self._max_logs = 250
 
     def create(self, *, phase: str = "queued") -> str:
@@ -64,6 +66,18 @@ class JobManager:
                 started_at=j.started_at,
                 updated_at=j.updated_at,
             )
+
+    def attach_task(self, job_id: str, task: asyncio.Task[Any]) -> None:
+        with self._lock:
+            self._tasks[job_id] = task
+
+        def _cleanup(_task: asyncio.Task[Any]) -> None:
+            with self._lock:
+                current = self._tasks.get(job_id)
+                if current is _task:
+                    self._tasks.pop(job_id, None)
+
+        task.add_done_callback(_cleanup)
 
     def log(self, job_id: str, msg: str) -> None:
         msg = (msg or "").strip()

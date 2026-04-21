@@ -1,115 +1,139 @@
 # Visual Agentic Memory (VAM)
 
-A high-performance framework for indexing long-horizon video streams and performing agentic retrieval over visual memory. VAM transforms raw video data into a searchable, structured "memory" that an AI agent can reason about to answer complex questions.
+Visual Agentic Memory is a Python package for indexing long-horizon video into persistent visual memory and performing agentic retrieval over that memory.
 
----
+It is designed as a library-first system with an optional API layer. The primary local interface is a terminal TUI, while FastAPI and WebSocket endpoints remain available for programmatic access.
 
-## 🌟 Core Capabilities
+## Core Capabilities
 
-- **Visual Evidence**: Multi-tier image embeddings (using Gemini or Qwen3-VL) for precise visual recall.
-- **Event Memory**: Automatically identifies and generates long-form event documents from video segments.
-- **Summary Memory**: Creates reusable summary documents over custom time ranges and granularities.
-- **Agentic Runtime**: A planning-first agent that orchestrates `retrieve` and `summarize` tools to solve multi-step reasoning tasks.
-- **Persistent Storage**: High-performance SQLite backend for all memory types, ensuring your indexed data persists across sessions.
-- **Unified Interface**: Modern terminal TUI for humans and a robust FastAPI/WebSocket API for machines.
+- Frame extraction and filtering with FFmpeg-based video processing.
+- Multi-tier visual memory with persistent SQLite storage.
+- Event document generation from indexed video segments.
+- Summary document generation over custom time ranges.
+- Agentic retrieval with `retrieve` and `summarize` style tool usage.
+- Terminal-first usage through `vam-tui`, with optional server access through `vam-server`.
 
----
+## Project Layout
 
-## 🏗️ Architecture
+- `vam/video.py`: video indexing pipeline used by both the TUI and the server.
+- `vam/retrieval/`: memory store, indexing, search, and persistence.
+- `vam/agent.py`: planning and response orchestration.
+- `vam/vision/`: embedding backend abstraction.
+- `vam/tui.py`: packaged terminal interface.
+- `vam/server/`: optional FastAPI and WebSocket entry points.
+- `vam/cli.py`: console entry points for `vam-tui` and `vam-server`.
 
-VAM is built as a lean, modular Python package:
+## Requirements
 
-- **`vam/agent.py`**: The "brain" — handles task planning and tool orchestration.
-- **`vam/retrieval/`**: The "memory engine" — manages indexing, vector search, and SQLite persistence.
-- **`vam/vision/`**: The "eyes" — provides unified interfaces for image embedding backends.
-- **`vam/server/`**: The "gateway" — FastAPI and WebSocket entry points for remote interaction.
-- **`vam/models.py`**: The "schema" — unified data structures for the entire system.
-- **`vam/cli.py`**: The "entry points" — exposes simplified commands for the TUI and Server.
+- Python `3.10+`
+- FFmpeg installed on the host system
 
----
+Install FFmpeg before running VAM:
 
-## 🚦 Prerequisites
+```bash
+# macOS
+brew install ffmpeg
 
-- **Python 3.10+**
-- **FFmpeg**: Essential for video processing and frame extraction.
-  ```bash
-  # macOS
-  brew install ffmpeg
-  # Ubuntu/Linux
-  sudo apt update && sudo apt install -y ffmpeg
-  # Windows
-  # Download from https://ffmpeg.org/download.html or use `choco install ffmpeg`
-  ```
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y ffmpeg
 
----
+# Windows (Chocolatey)
+choco install ffmpeg
+```
 
-## 🚀 Quick Start
+If you do not use Chocolatey on Windows, install FFmpeg manually from [ffmpeg.org](https://ffmpeg.org/download.html).
 
-### 1. Installation
+## Installation
 
-One-click install as a local package to automatically handle all Python dependencies:
+Clone the repository and install the package:
 
 ```bash
 pip install .
 ```
 
-### 2. Configuration
+This installs the Python dependencies and exposes two console commands:
 
-Copy the example environment file and set your API key:
+- `vam-tui`
+- `vam-server`
+
+If you prefer `uv`, the following also works:
+
+```bash
+uv run --python 3.11 vam-tui
+uv run --python 3.11 vam-server
+```
+
+## Configuration
+
+Create a local environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set:
-- `OPENROUTER_API_KEY`: Your OpenRouter API key (supports Gemini, etc.).
-- `LLM_MODEL`: (Optional) Default is `google/gemini-3-flash-preview`.
-- `EMBEDDING_MODEL`: (Optional) Default is `google/gemini-embedding-2-preview`.
+Set at least:
 
-### 3. Usage
+- `OPENROUTER_API_KEY`
 
-VAM provides two main ways to interact:
+Common optional variables:
 
-#### **A. Interactive TUI (Recommended)**
-Perfect for quick indexing and manual QA.
+- `LLM_MODEL` default: `google/gemini-3-flash-preview`
+- `EMBEDDING_MODEL` default: `google/gemini-embedding-2-preview`
+- `FRAME_STORE_PATH` default: `data/frame_store.sqlite3`
+- `VISION_EMBEDDING_BACKEND` default: `openrouter_gemini`
+
+## Usage
+
+### Terminal TUI
+
+Start the local terminal interface:
+
 ```bash
 vam-tui
 ```
-*   **Menu Options**: Overview, Index Video, Ask Agent, Summarize Range, Browse Memory, etc.
 
-#### **B. API Server**
-For programmatic integration or building custom frontends.
+The TUI supports:
+
+- indexing a video from a local path
+- asking retrieval questions over stored memory
+- generating summaries over selected time ranges
+- browsing indexed memory and recent event documents
+
+### Optional API Server
+
+Start the server:
+
 ```bash
 vam-server
 ```
-*   **Swagger Docs**: `http://localhost:8000/docs`
-*   **WebSocket Agent**: Connect to `ws://localhost:8000/ws/agent` for real-time streaming agentic chat.
 
----
+Default endpoints:
 
-## 📝 Example Queries
+- HTTP root: `http://localhost:8000/`
+- Swagger docs: `http://localhost:8000/docs`
+- WebSocket agent: `ws://localhost:8000/ws/agent`
 
-Once you've indexed a video, you can ask the agent complex questions like:
+You can override the port with `PORT`:
 
-- *"What was the first thing I did after I finished reading the book?"*
-- *"Find a scene where I am sitting on the sofa but not watching TV."*
-- *"How many times did I drink coffee in the video?"*
-- *"Summarize the first 30 minutes of the video, minute by minute, focusing on my kitchen activities."*
+```bash
+PORT=8011 vam-server
+```
 
----
+## Example Queries
 
-## ⚙️ Advanced Configuration
+After indexing a video, example questions include:
 
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `LLM_MODEL` | Main LLM used for planning and answering | `google/gemini-3-flash-preview` |
-| `EMBEDDING_MODEL` | Model used for image/text embeddings | `google/gemini-embedding-2-preview` |
-| `FRAME_STORE_PATH` | Path to the SQLite database | `data/frame_store.sqlite3` |
-| `VIDEO_FPS` | Default FPS for frame extraction | `1.0` |
-| `VISION_EMBEDDING_BACKEND` | Embedding backend (`openrouter_gemini` or `qwen3_vl`) | `openrouter_gemini` |
+- "What happened right after I left the kitchen?"
+- "Find the scene where I was sitting on the sofa but not watching TV."
+- "How many times did I pick up a cup?"
+- "Summarize the first 30 minutes, focusing on kitchen activity."
 
----
+## Notes
 
-## 📜 License
+- The package requires Python `3.10+`. A system `python3` on macOS may still point to `3.9`, which is not supported.
+- FFmpeg is an external system dependency and is not installed by `pyproject.toml`.
+- The TUI is the primary interface. The server is optional rather than the core product surface.
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+## License
+
+This project is released under the [MIT License](LICENSE).

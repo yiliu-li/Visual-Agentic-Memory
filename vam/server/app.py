@@ -17,10 +17,10 @@ def create_app() -> FastAPI:
         return {
             "name": settings.app_name,
             "version": settings.app_version,
-            "mode": "api",
+            "mode": "library-with-optional-api",
             "docs": "/docs",
             "websocket": "/ws/agent",
-            "tui": "python tui.py",
+            "tui": "vam-tui",
         }
 
     return app

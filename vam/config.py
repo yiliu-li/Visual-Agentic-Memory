@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     # Overrides
     openrouter_model_id: str = ""
+    openrouter_model_id_main: str = ""
+    openrouter_model_id_light: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_embedding_model: str = ""
     openrouter_embedding_dimensions: int = 0
@@ -30,6 +32,8 @@ class Settings(BaseSettings):
     # Internal Defaults
     qwen3_vl_embedding_model: str = "Qwen/Qwen3-VL-Embedding-2B"
     qwen3_vl_device: str = "auto"
+    self_qwen_embedding_api: str = ""
+    self_qwen_embedding_key: str = ""
     enable_retrieval: bool = True
 
     # Video Processing & Filtering Presets

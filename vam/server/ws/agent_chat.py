@@ -71,11 +71,11 @@ async def agent_chat(websocket: WebSocket):
 
             msg_type = str(payload.get("type") or "")
             if msg_type == "image":
-                await _safe_send_text(websocket, {"type": "info", "message": "image ignored in retrieval-only mode"})
+                await _safe_send_text(websocket, {"type": "info", "message": "image input is not supported on this websocket endpoint"})
                 continue
 
             if msg_type == "config":
-                await _safe_send_text(websocket, {"type": "info", "message": "config ignored in retrieval-only mode"})
+                await _safe_send_text(websocket, {"type": "info", "message": "runtime config updates are not supported on this websocket endpoint"})
                 continue
 
             if msg_type == "reset":
