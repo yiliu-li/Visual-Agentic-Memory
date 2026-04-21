@@ -463,9 +463,15 @@ class AgentTUI:
         self.console.clear()
         if not Confirm.ask("Clear all indexed memory and reset chat history?", default=False):
             return
-        cleared = await self.store.clear()
+        stats = await self.store.clear_with_stats()
         self.history.clear()
-        self.console.print(Panel(f"Cleared {cleared} frames and reset chat history.", title="Clear Memory", border_style="red"))
+        self.console.print(
+            Panel(
+                f"Cleared {int(stats['frames'])} frames and {int(stats['documents'])} memory documents; chat history was reset.",
+                title="Clear Memory",
+                border_style="red",
+            )
+        )
         self._pause()
 
     async def run(self) -> None:
@@ -650,9 +656,9 @@ class PlainAgentCLI:
         confirm = self._ask("Type YES to clear memory and chat", "").upper()
         if confirm != "YES":
             return
-        cleared = await self.store.clear()
+        stats = await self.store.clear_with_stats()
         self.history.clear()
-        print(f"Cleared {cleared} frames and reset chat history.")
+        print(f"Cleared {int(stats['frames'])} frames and {int(stats['documents'])} memory documents; chat history was reset.")
         self._pause()
 
     async def run(self) -> None:

@@ -1805,6 +1805,146 @@ class FrameStore:
         await self._persist()
         return doc
 
+    def _matches_exact_summary_window(
+        self,
+        doc: MemoryDocument,
+        *,
+        start_t: float,
+        end_t: float,
+        time_mode: str,
+        granularity_s: float,
+        summary_structure: Optional[str],
+        focus: str,
+    ) -> bool:
+        if str(doc.kind) != "summary":
+            return False
+
+        metadata = dict(doc.metadata or {})
+        stored_focus = " ".join(str(metadata.get("focus") or "").split()).strip()
+        stored_structure = str(metadata.get("summary_structure") or metadata.get("summary_type") or "").strip().lower()
+        target_structure = str(summary_structure or "").strip().lower()
+
+        try:
+            stored_granularity = float(metadata.get("granularity_seconds") or 0.0)
+        except Exception:
+            stored_granularity = 0.0
+
+        if stored_focus != focus:
+            return False
+        if stored_structure != target_structure:
+            return False
+        if abs(stored_granularity - float(granularity_s)) > 1e-6:
+            return False
+
+        use_absolute = self._should_use_absolute_time_range(
+            min_time=start_t,
+            max_time=end_t,
+            time_mode=time_mode,
+        )
+        if use_absolute:
+            if doc.absolute_start_t is None or doc.absolute_end_t is None:
+                return False
+            return abs(float(doc.absolute_start_t) - float(start_t)) <= 1e-6 and abs(float(doc.absolute_end_t) - float(end_t)) <= 1e-6
+        return abs(float(doc.start_t) - float(start_t)) <= 1e-6 and abs(float(doc.end_t) - float(end_t)) <= 1e-6
+
+    async def upsert_summary_document(
+        self,
+        *,
+        start_t: float,
+        end_t: float,
+        time_mode: str,
+        granularity_s: float,
+        summary_structure: Optional[str],
+        prompt: str,
+        text: str,
+        representative_frame_id: Optional[str],
+        frame_ids: List[str],
+        absolute_start_t: Optional[float],
+        absolute_end_t: Optional[float],
+    ) -> MemoryDocument:
+        content = _normalize_multiline_payload(text)
+        dense_content = _normalize_text_payload(content)
+        normalized_focus = " ".join((prompt or "").split()).strip()
+        normalized_structure = " ".join((summary_structure or "").split()).strip().lower()
+        match_start_t = float(absolute_start_t if absolute_start_t is not None and self._should_use_absolute_time_range(min_time=start_t, max_time=end_t, time_mode=time_mode) else start_t)
+        match_end_t = float(absolute_end_t if absolute_end_t is not None and self._should_use_absolute_time_range(min_time=start_t, max_time=end_t, time_mode=time_mode) else end_t)
+        metadata: Dict[str, Any] = {
+            "granularity_seconds": float(granularity_s),
+            "focus": normalized_focus,
+            "source_kinds": ["event", "frame"],
+        }
+        if normalized_structure:
+            metadata["summary_structure"] = normalized_structure
+
+        retrieval_payload = await self._build_retrieval_payload(
+            layer="summary",
+            kind="summary",
+            start_t=float(start_t),
+            end_t=float(end_t),
+            text=content,
+            metadata=metadata,
+        )
+        if retrieval_payload:
+            metadata["_retrieval"] = retrieval_payload
+        summary_emb = await self._embed_text_for_memory(dense_content)
+
+        documents = await self.list_memory_documents_in_time_range(
+            min_time=match_start_t,
+            max_time=match_end_t,
+            time_mode=time_mode,
+            kind="summary",
+            summary_filter={
+                "summary_structure": normalized_structure or None,
+                "granularity_seconds": float(granularity_s),
+            },
+        )
+        matches = [
+            doc
+            for doc in documents
+            if self._matches_exact_summary_window(
+                doc,
+                start_t=match_start_t,
+                end_t=match_end_t,
+                time_mode=time_mode,
+                granularity_s=float(granularity_s),
+                summary_structure=normalized_structure or None,
+                focus=normalized_focus,
+            )
+        ]
+
+        if matches:
+            target = max(matches, key=lambda item: (float(item.end_t), float(item.start_t), str(item.doc_id)))
+            async with self._lock:
+                if len(matches) > 1:
+                    duplicate_ids = {doc.doc_id for doc in matches if doc.doc_id != target.doc_id}
+                    self._memory_documents = [doc for doc in self._memory_documents if doc.doc_id not in duplicate_ids]
+                target.layer = "summary"
+                target.kind = "summary"
+                target.start_t = float(start_t)
+                target.end_t = float(end_t)
+                target.text = content
+                target.representative_frame_id = representative_frame_id
+                target.frame_ids = list(frame_ids)
+                target.absolute_start_t = absolute_start_t
+                target.absolute_end_t = absolute_end_t
+                target.emb = summary_emb
+                target.metadata = metadata or None
+            await self._persist()
+            return target
+
+        return await self.add_memory_document(
+            layer="summary",
+            kind="summary",
+            start_t=float(start_t),
+            end_t=float(end_t),
+            text=content,
+            representative_frame_id=representative_frame_id,
+            frame_ids=list(frame_ids),
+            absolute_start_t=absolute_start_t,
+            absolute_end_t=absolute_end_t,
+            metadata=metadata,
+        )
+
     async def list_memory_documents(self) -> List[MemoryDocument]:
         return await anyio.to_thread.run_sync(partial(self._fetch_documents_sync))
 
@@ -2050,25 +2190,19 @@ class FrameStore:
                     else:
                         rel_start_t = window_start
                         rel_end_t = window_end
-                    metadata = {
-                        "granularity_seconds": float(bucket_s),
-                        "focus": " ".join((prompt or "").split()).strip(),
-                        "source_kinds": ["event", "frame"],
-                    }
-                    if summary_structure:
-                        metadata["summary_structure"] = " ".join((summary_structure or "").split()).strip().lower()
                     created.append(
-                        await self.add_memory_document(
-                            layer="summary",
-                            kind="summary",
+                        await self.upsert_summary_document(
                             start_t=rel_start_t,
                             end_t=rel_end_t,
+                            time_mode=time_mode,
+                            granularity_s=bucket_s,
+                            summary_structure=summary_structure,
+                            prompt=prompt,
                             text=summary_text,
                             representative_frame_id=representative_frame_id,
-                            frame_ids=frame_ids,
+                            frame_ids=list(frame_ids),
                             absolute_start_t=absolute_start_t,
                             absolute_end_t=absolute_end_t,
-                            metadata=metadata,
                         )
                     )
             cursor = window_end
@@ -2125,17 +2259,29 @@ class FrameStore:
             absolute_end_t=absolute_end_t,
         )
 
-    async def clear(self) -> int:
+    async def clear_with_stats(self) -> Dict[str, int]:
         await self._reload_from_db()
         async with self._lock:
-            n = len(self._frames)
+            frame_count = len(self._frames)
+            document_count = len(self._memory_documents)
+            event_count = sum(1 for doc in self._memory_documents if str(doc.kind) == "event")
+            summary_count = sum(1 for doc in self._memory_documents if str(doc.kind) == "summary")
             self._frames = []
             self._memory_documents = []
             self._recent_event_doc_id = None
         self._latest_dedup_filter = None
         self._latest_event_filter = None
         await self._persist()
-        return n
+        return {
+            "frames": int(frame_count),
+            "documents": int(document_count),
+            "events": int(event_count),
+            "summaries": int(summary_count),
+        }
+
+    async def clear(self) -> int:
+        stats = await self.clear_with_stats()
+        return int(stats["frames"])
 
     async def remove_frames(self, frame_ids: List[str]) -> int:
         if not frame_ids:

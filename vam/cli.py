@@ -1,5 +1,6 @@
 import os
 import asyncio
+from pathlib import Path
 
 def run_tui():
     """Entry point for the terminal TUI."""
@@ -21,6 +22,7 @@ def run_server():
     else:
         reload = (not is_prod) and (os.name != "nt")
     
+    package_root = Path(__file__).resolve().parent
     print(f"Starting VAM server on port {port} (reload={reload})...")
     uvicorn.run(
         "vam.server.app:app", 
@@ -28,6 +30,6 @@ def run_server():
         port=port, 
         log_level="info" if is_prod else "debug", 
         reload=reload, 
-        reload_dirs=["vam"] if reload else None,
+        reload_dirs=[str(package_root)] if reload else None,
         ws_max_size=1024 * 1024 * 1024 * 2
     )

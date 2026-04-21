@@ -2,6 +2,7 @@
 import uvicorn
 import sys
 import os
+from pathlib import Path
 
 if __name__ == "__main__":
     try:
@@ -14,7 +15,8 @@ if __name__ == "__main__":
             reload = reload_env.strip().lower() in ("1", "true", "yes", "on")
         else:
             reload = (not is_prod) and (os.name != "nt")
-        
+        package_root = Path(__file__).resolve().parent / "vam"
+
         print(f"Starting uvicorn on port {port} (reload={reload})...")
         uvicorn.run(
             "vam.server.app:app", 
@@ -22,7 +24,7 @@ if __name__ == "__main__":
             port=port, 
             log_level="info" if is_prod else "debug", 
             reload=reload, 
-            reload_dirs=["vam"] if reload else None,
+            reload_dirs=[str(package_root)] if reload else None,
             ws_max_size=1024 * 1024 * 1024 * 2  # 2GB WebSocket limit
         )
     except Exception as e:

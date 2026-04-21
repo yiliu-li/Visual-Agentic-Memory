@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
             "version": settings.app_version,
             "mode": "library-with-optional-api",
             "docs": "/docs",
-            "websocket": "/ws/agent",
+            "websocket": settings.websocket_path,
             "tui": "vam-tui",
         }
 

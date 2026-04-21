@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Visual Agentic Memory"
     app_version: str = "0.1.0"
-    websocket_path: str = "/ws"
+    websocket_path: str = "/ws/agent"
     
     # Core
     openrouter_api_key: str = ""
