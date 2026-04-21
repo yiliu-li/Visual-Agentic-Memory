@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing & Linters
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+
+# Logs & Databases
+*.log
+*.sqlite
+*.db
+
+# Project Specific (Runtime Data)
+data/*
+!data/.gitkeep
+//Addition of public/dev/ to gitignore is a minor configuration update
+public/dev/
+frame_store*.json
+*.html
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.wav
+*.webm
+
+# AI Models & Weights
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.onnx
+*.tflite
+*.ckpt
+*.h5
+*.pb
+weights/
+checkpoints/
+model_cache/
+hf_cache/

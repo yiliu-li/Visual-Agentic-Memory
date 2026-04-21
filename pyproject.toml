@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visual-agentic-memory"
+version = "0.1.0"
+description = "A streamlined framework for indexing video memory and performing agentic retrieval."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "python-dotenv",
+    "httpx",
+    "pydantic-settings",
+    "python-multipart",
+    "transformers",
+    "torch",
+    "pillow>=10.0.0",
+    "scikit-image>=0.21.0",
+    "opencv-python<4.11",
+    "numpy<2.0; python_version < '3.13'",
+    "numpy>=2.0; python_version >= '3.13'",
+    "rich",
+]
+
+[project.scripts]
+vam-tui = "vam.cli:run_tui"
+vam-server = "vam.cli:run_server"
+
+[tool.setuptools.packages.find]
+include = ["vam*"]
