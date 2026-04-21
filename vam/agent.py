@@ -74,9 +74,9 @@ async def stream_retrieve_tool_request(
             best = final_result["best"]
             t_sec = float(best.get("t") or 0.0)
             detail = str(best.get("inspection") or best.get("caption") or "").strip()
-            answer = f"Found a memory at {t_sec:.1f}s: {detail}" if detail else f"Found a memory at {t_sec:.1f}s."
+            answer = f"Found relevant evidence at {t_sec:.1f}s: {detail}" if detail else f"Found relevant evidence at {t_sec:.1f}s."
     if not answer:
-        answer = "No memory matches found."
+        answer = "No relevant evidence found."
 
     result = final_result or {"found": False, "answer": answer, "turns": []}
     yield {
@@ -128,7 +128,7 @@ async def stream_summarize_tool_request(
             }
         )
 
-    answer = f"Created {len(results)} summary documents."
+    answer = f"Created {len(results)} summary documents in Hierarchical Memory."
     yield {
         "type": "final",
         "text": answer,
@@ -158,7 +158,7 @@ async def stream_agent_response(
     try:
         decision = await route_text_request(transcript=clean_transcript)
     except Exception as exc:
-        logger.warning("text_router_failed; falling back to direct retrieval: %s", exc)
+        logger.warning("top_level_router_failed; falling back to direct Agentic Retrieval: %s", exc)
         yield {"type": "user_text", "text": clean_transcript}
         async for event in stream_retrieve_tool_request(
             transcript=clean_transcript,

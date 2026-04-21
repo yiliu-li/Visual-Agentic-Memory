@@ -7,8 +7,8 @@ from vam.server.ws.agent_chat import router as agent_chat_router
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name, version=settings.app_version)
-    
-    # Routers
+
+    # Optional API surfaces for the library-first runtime.
     app.include_router(frames_router)
     app.include_router(agent_chat_router)
 

@@ -6,7 +6,7 @@ from vam.llm.openrouter import OpenRouterClient
 
 class LLMRouter:
     """
-    Simple dual-LLM router with 'main' and 'light' routes.
+    Lightweight Main LLM and helper-model router used by Asynchronous Orchestration.
 
     Usage:
         router = LLMRouter()
@@ -15,7 +15,7 @@ class LLMRouter:
 
     def __init__(self) -> None:
         cfg = get_settings()
-        # Instantiate clients; fall back to single-model id when specific ids are unset
+        # Use dedicated Main LLM and helper-model ids when available; otherwise fall back to one shared model id.
         main_id = cfg.openrouter_model_id_main or cfg.openrouter_model_id_light or cfg.openrouter_model_id
         light_id = cfg.openrouter_model_id_light or cfg.openrouter_model_id
         self.main = OpenRouterClient(model_id=main_id)
@@ -48,7 +48,7 @@ class LLMRouter:
         has_images: bool = False,
         latency_budget_ms: Optional[int] = None,
     ) -> str:
-        """Decide 'main' vs 'light' based on simple heuristics (stub)."""
+        """Choose Main LLM vs helper-model route using simple heuristics."""
         if input_length and input_length > 2000:
             return "main"
         if has_images:

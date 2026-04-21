@@ -48,7 +48,7 @@ async def agent_chat(websocket: WebSocket):
             websocket,
             {
                 "type": "info",
-                "message": "retrieval-vqa agent ready",
+                "message": "Agentic Retrieval endpoint ready",
             },
         )
 

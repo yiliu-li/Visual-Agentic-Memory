@@ -361,12 +361,12 @@ class AgentTUI:
                 if job is not None and str(job.status) in {"done", "error", "failed"}:
                     break
                 await asyncio.sleep(0.25)
-        
+
         if job and job.status == "done":
             self.console.print("\n[bold green]Indexing complete![/]")
         elif job and job.status in {"error", "failed"}:
             self.console.print(f"\n[bold red]Indexing failed: {job.error}[/]")
-        
+
         self._pause()
 
     async def action_ask_agent(self) -> None:
@@ -386,7 +386,7 @@ class AgentTUI:
 
     async def action_summarize_range(self) -> None:
         self.console.clear()
-        self.console.print(Panel("Create summary memory documents over a time range.", title="Summarize Range", border_style="cyan"))
+        self.console.print(Panel("Create reusable summary documents in Hierarchical Memory over a time range.", title="Summarize Range", border_style="cyan"))
 
         min_time = FloatPrompt.ask("Start time", default=0.0)
         max_time_raw = Prompt.ask("End time (blank = to the end)", default="").strip()

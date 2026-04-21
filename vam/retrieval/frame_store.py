@@ -1075,7 +1075,7 @@ class FrameStore:
         if int(self._dim) != d:
             raise RuntimeError(f"embedding dim mismatch: store_dim={self._dim} new_dim={d}")
         emb = torch.tensor(emb_list, dtype=torch.float16)
-        
+
         distance: Optional[float] = None
         threshold_info = self.adaptive_dedup_threshold()
         async with self._lock:
@@ -1089,18 +1089,18 @@ class FrameStore:
                     # If D is similar to LastSaved, we temporarily hold D.
                     # If Next (E) is ALSO similar to LastSaved, we can drop D (the middle one) and hold E.
                     # If Next (E) is DIFFERENT, we must save D (the end of the similar chunk) and then save E.
-                    
+
                     # Implementation complexity: add_frame is single-item. We can't know "Next" yet.
                     # To support "keep start and end of similar sequence", we need a buffer or state.
                     # But here we are in a simple append-only store.
                     # Simplified approximation for single-frame add:
-                    # Always replace the last frame if it was also "similar to the one before it"? 
+                    # Always replace the last frame if it was also "similar to the one before it"?
                     # No, that's too complex for this stateless method.
                     # For add_frame (single), we will stick to simple deduplication (drop if similar).
                     # The complex "keep ends" logic is better handled in add_frames (batch).
                     self.record_dedup_distance(distance)
                     return None
-            
+
             rec = FrameRecord(
                 frame_id=frame_id or uuid.uuid4().hex,
                 t=t,
@@ -2379,22 +2379,22 @@ class FrameStore:
 
     async def inspect_frames(self, frames: List[FrameRecord], query: str) -> str:
         """
-        Visually inspect multiple frames together to answer the specific user query.
-        Uses the internal VLM client (e.g. Qwen-VL or GPT-4o).
+        Perform Visual Inspection over multiple frames to answer a specific query.
+        Uses the internal Multimodal Inspector client.
         """
         system_prompt = (
-            "You are a visual assistant analyzing a sequence of video frames. "
-            "The user is looking for something specific in these images. "
-            "Analyze the images strictly focusing on the user's query. "
-            "Describe what is happening across the frames if relevant. "
-            "If the images contain relevant information, describe it in detail. "
-            "If the images are irrelevant to the query, clearly state that."
+            "You are the Multimodal Inspector for a Visual Agentic Memory system. "
+            "You are performing Visual Inspection over a sequence of video frames. "
+            "Analyze the frames strictly with respect to the query. "
+            "Describe what happens across the frames when it is relevant to the query. "
+            "If the frames contain relevant visual evidence, describe it in detail. "
+            "If the frames are irrelevant to the query, clearly say so."
         )
-        
-        # Build user prompt with multiple images
+
+        # Build the Multimodal Inspector prompt over multiple frames.
         image_uris = [f.image_data_uri for f in frames]
-        user_prompt = f"User Query: {query}\n\nPlease look at these {len(frames)} frames and answer the query."
-        
+        user_prompt = f"User Query: {query}\n\nPlease examine these {len(frames)} frames and answer the query."
+
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -2402,13 +2402,13 @@ class FrameStore:
                 "content": build_mm_user_content(user_prompt, image_uris),
             },
         ]
-        
-        # Use a higher max_tokens for multi-frame analysis
+
+        # Multi-frame Visual Inspection typically needs a slightly larger response budget.
         text, _ = await self._vlm_client.chat(messages, temperature=0.1, max_tokens=500)
         return (text or "").strip()
 
     async def inspect_frame(self, frame: FrameRecord, query: str) -> str:
-        """Backward compatibility wrapper for single frame inspection."""
+        """Compatibility wrapper for single-frame Visual Inspection."""
         return await self.inspect_frames([frame], query)
 
     async def judge_frames_for_anchor(

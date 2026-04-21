@@ -658,8 +658,9 @@ async def hybrid_event_frame_search(
     summary_filter: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Hybrid retrieval over frame embeddings and event-memory documents.
-    If image_query_emb is provided, uses that for visual similarity instead of text query.
+    Hybrid Agentic Retrieval over the Parallel Representation.
+    Searches Spatial Representation frame embeddings and Temporal Representation documents.
+    If image_query_emb is provided, use that for visual similarity instead of a text query.
     time_mode: "auto", "relative", or "absolute".
     """
     if torch is None:
@@ -681,18 +682,18 @@ async def hybrid_event_frame_search(
     else:
         frames = list(all_frames)
 
-    # 1. Vector Search
+    # 1. Retrieve candidates from the Parallel Representation.
     if image_query_emb:
         if not frames:
             return []
-        # Use provided image embedding for search
+        # Use the provided image embedding for Spatial Retrieval.
         q_vec = torch.tensor(image_query_emb, dtype=torch.float32).flatten()
     else:
-        # Use text query
+        # Use the text query for retrieval over frame and document stores.
         q_emb = await store.embed_texts(texts=[query])
         q_vec = q_emb[0]
-    
-    # Get more candidates initially to filter down
+
+    # Retrieve a slightly broader candidate pool first, then filter down.
     base_k = max(1, int(top_k))
     frame_k = base_k
     event_k = base_k
@@ -736,7 +737,7 @@ async def hybrid_event_frame_search(
 
     scored: List[Dict[str, Any]] = []
 
-    # 2. Score & Verify
+    # 2. Score candidates before Visual Inspection.
     for frame, img_sim in candidates:
         if img_sim < 0.05:
             continue
@@ -781,13 +782,13 @@ async def hybrid_event_frame_search(
 
 
 async def search_generator(
-    semantic: str, 
+    semantic: str,
     store_instance: Optional[FrameStore] = None,
     chat_history: Optional[List[Dict[str, Any]]] = None,
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
-    Generator version of search for streaming progress.
-    Yields events: 
+    Streaming Agentic Retrieval generator.
+    Yields events:
     - {"type": "plan", "content": "..."}
     - {"type": "search_start", "queries": [...]}
     - {"type": "search_done", "query": "...", "hits": N, "results": [...]}
@@ -803,7 +804,7 @@ async def search_generator(
     store = store_instance or default_store
     cfg = get_settings()
     planner = OpenRouterClient(model_id=cfg.openrouter_model_id_main or cfg.openrouter_model_id)
-    
+
     t0 = time.time()
     goal = semantic
     context: List[Dict[str, Any]] = []
@@ -1354,7 +1355,7 @@ async def search_generator(
         # 2. Call Planner
         yield {"type": "plan", "turn": turn + 1, "content": "Thinking..."}
         t_plan_start = time.time()
-        
+
         messages = [
             {"role": "system", "content": prompts.agent_planner_system()},
             {
@@ -1370,10 +1371,10 @@ async def search_generator(
                 ),
             },
         ]
-        
+
         text, _ = await planner.chat(messages, temperature=0.1, max_tokens=500)
         yield {"type": "plan_done", "duration": time.time() - t_plan_start}
-        
+
         # 3. Parse Action
         try:
             plan = _parse_plan_text(text)
@@ -1410,9 +1411,9 @@ async def search_generator(
 
         action = plan.get("action")
         thought = plan.get("thought", "")
-        # Get dynamic inspection prompt if available, else fallback to goal
+        # Use the planner-provided Visual Inspection prompt when available.
         inspection_prompt = plan.get("inspection_prompt", goal)
-        
+
         yield {"type": "thought", "content": thought}
 
         if action == "answer":
@@ -1661,13 +1662,13 @@ async def search_generator(
             joint = bool(plan.get("joint_inspection", False))
             sources = [str(source).strip().lower() for source in (plan.get("sources") or []) if str(source).strip()]
             summary_filter = plan.get("summary_filter")
-            
+
             # Parse time range and mode from plan
             time_range = plan.get("time_range", {})
             min_t, max_t, t_mode, anchor_summary, anchor_events, anchor_failed = await _resolve_requested_time_range(time_range)
             for event in anchor_events:
                 yield event
-            
+
             # Check for visual reference
             visual_ref = plan.get("visual_ref")
             ref_emb = None
@@ -1706,7 +1707,7 @@ async def search_generator(
                         }
                     )
                 continue
-             
+
             # Execute searches in parallel
             t_search_start = time.time()
             tasks = []
@@ -1755,17 +1756,17 @@ async def search_generator(
 
             if not tasks:
                 continue
-                
+
             results_list = await asyncio.gather(*tasks)
             yield {"type": "search_step_done", "duration": time.time() - t_search_start}
-            
-            # Update context with Visual Inspection
+
+            # Update the Agentic Retrieval context with Visual Inspection results.
             current_specs = query_specs if ref_emb is None else [{
                 "q": visual_label or "Visual Match",
                 "top_k": len(results_list[0]) if results_list else 0,
                 "inspect_k": min(5, len(results_list[0]) if results_list else 0),
             }]
-            
+
             for spec, res in zip(current_specs, results_list):
                 q = str(spec.get("q") or "")
                 # Pass results (truncated) so frontend can display them
@@ -1787,14 +1788,14 @@ async def search_generator(
                         "time_range": r.get("time_range"),
                     })
                 yield {"type": "search_done", "query": q, "hits": len(res), "results": display_results, "top_k": spec.get("top_k"), "inspect_k": spec.get("inspect_k")}
-                
+
                 inspected_res = []
                 inspect_k = _safe_int(spec.get("inspect_k", plan.get("inspect_k", 5)), 5)
                 to_inspect = res[: max(0, min(len(res), inspect_k))]
-                
+
                 if to_inspect:
                     yield {"type": "inspection_start", "count": len(to_inspect), "query": q, "joint": joint}
-                    
+
                     t_insp_start = time.time()
                     inspected_res = await _inspect_results(
                         store=store,
@@ -1862,7 +1863,7 @@ async def search_generator(
                 yield {"type": "answer", "content": forced_answer}
                 yield {"type": "final", "result": res}
                 return
-                
+
         else:
             yield {"type": "error", "message": f"unsupported_action: {action}"}
             break
