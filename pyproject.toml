@@ -20,7 +20,6 @@ dependencies = [
     "httpx",
     "pydantic-settings",
     "python-multipart",
-    "transformers",
     "torch",
     "pillow>=10.0.0",
     "scikit-image>=0.21.0",
@@ -35,4 +34,5 @@ vam-tui = "vam.cli:run_tui"
 vam-server = "vam.cli:run_server"
 
 [tool.setuptools.packages.find]
+namespaces = false
 include = ["vam*"]

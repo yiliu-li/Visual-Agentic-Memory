@@ -8,7 +8,6 @@ import json
 import logging
 import os
 import math
-import re
 import sqlite3
 import subprocess
 import tempfile
@@ -37,7 +36,7 @@ import numpy as np
 
 from vam.llm.openrouter import OpenRouterClient, build_mm_user_content
 from vam import prompts
-from vam.vision.backends import VisionBackend, get_backend, normalize_backend
+from vam.vision.backends import VisionBackend, get_backend
 from vam.config import get_settings
 
 
@@ -343,7 +342,7 @@ class FrameStore:
             self._maybe_migrate_legacy_json()
             self._load_from_db()
 
-    def backend_name(self) -> str:
+    def embedding_name(self) -> str:
         return getattr(self._backend, "name", "unknown")
 
     def _connect_db(self) -> sqlite3.Connection:
@@ -676,7 +675,7 @@ class FrameStore:
                 WHERE store_key = 1
                 """,
                 (
-                    self.backend_name(),
+                    self.embedding_name(),
                     int(self._dim or 0) if self._dim is not None else None,
                     next_revision,
                     recent_event_doc_id,
@@ -2699,63 +2698,41 @@ class FrameStore:
         emb_list, _ = await anyio.to_thread.run_sync(_embed_sync, texts)
         return torch.tensor(emb_list, dtype=torch.float32)
 
-def _persist_path_for_backend(base_path: str, backend_name: str, fingerprint: str) -> str:
+def _resolve_persist_path(base_path: str) -> str:
     base = (base_path or "").strip()
     if not base:
         return ""
-    bn = normalize_backend(backend_name)
-    h = hashlib.sha1((fingerprint or "").encode("utf-8")).hexdigest()[:10] if fingerprint else "default"
     lower = base.lower()
-    qualified_pattern = re.compile(
-        rf"\.{re.escape(bn.lower())}\.[^.]+\.(sqlite3|sqlite|db)$",
-        flags=re.IGNORECASE,
-    )
-    if qualified_pattern.search(base):
-        return base
     if lower.endswith(".sqlite3"):
-        root = base[:-8]
-        return f"{root}.{bn}.{h}.sqlite3"
+        return base
     if lower.endswith(".sqlite"):
-        root = base[:-7]
-        return f"{root}.{bn}.{h}.sqlite"
+        return base
     if lower.endswith(".db"):
-        root = base[:-3]
-        return f"{root}.{bn}.{h}.db"
+        return base
     if lower.endswith(".json"):
         root = base[:-5]
-        return f"{root}.{bn}.{h}.sqlite3"
-    return f"{base}.{bn}.{h}.sqlite3"
+        return f"{root}.sqlite3"
+    return f"{base}.sqlite3"
 
 
 _stores: dict[str, FrameStore] = {}
 
 
-def get_store(backend: Optional[str], *, persist_path: Optional[str] = None) -> FrameStore:
+def get_store(*, persist_path: Optional[str] = None) -> FrameStore:
     cfg = get_settings()
-    requested_backend = backend if (backend or "").strip() else cfg.vision_embedding_backend
-    bn = normalize_backend(requested_backend)
-    fingerprint = ""
-    if bn == "qwen3_vl":
-        fingerprint = "|".join(
-            [
-                str(cfg.qwen3_vl_embedding_model or ""),
-                str(cfg.self_qwen_embedding_api or ""),
-            ]
-        )
     base_persist_path = str(persist_path or "").strip() or str(cfg.frame_store_path or "")
-    resolved_persist_path = _persist_path_for_backend(base_persist_path, bn, fingerprint)
-    key_material = f"{bn}|{fingerprint}|{resolved_persist_path}"
-    key = f"{bn}:{hashlib.sha1(key_material.encode('utf-8')).hexdigest()[:10]}"
+    resolved_persist_path = _resolve_persist_path(base_persist_path)
+    key = hashlib.sha1(resolved_persist_path.encode("utf-8")).hexdigest()[:10]
     if key in _stores:
         return _stores[key]
-    store = FrameStore(backend=get_backend(bn), persist_path=resolved_persist_path)
+    store = FrameStore(backend=get_backend(), persist_path=resolved_persist_path)
     _stores[key] = store
     return store
 
 
-def resolve_memory_store(*, backend: Optional[str] = None, persist_path: Optional[str] = None) -> FrameStore:
+def resolve_memory_store(*, persist_path: Optional[str] = None) -> FrameStore:
     """Resolve the retrieval store used by the agent."""
-    return get_store(backend or get_settings().vision_embedding_backend, persist_path=persist_path)
+    return get_store(persist_path=persist_path)
 
 
-store = get_store(get_settings().vision_embedding_backend)
+store = get_store()

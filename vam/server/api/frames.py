@@ -37,7 +37,6 @@ class IndexVideoPathRequest(BaseModel):
     hist_threshold: Optional[float] = None
     similarity_threshold: Optional[float] = None
     frame_id_prefix: str = "v"
-    backend: Optional[str] = None
     store_path: Optional[str] = None
     video_start_time: Optional[str] = None
     debug: bool = False
@@ -115,7 +114,6 @@ async def index_video_async(
     hist_threshold: Optional[float] = Form(default=None),
     similarity_threshold: Optional[float] = Form(default=None),
     frame_id_prefix: Optional[str] = Form(default="v"),
-    backend: Optional[str] = Form(default=None),
     store_path: Optional[str] = Form(default=None),
     video_start_time: Optional[str] = Form(default=None),
     debug: Optional[bool] = Form(default=None),
@@ -128,7 +126,6 @@ async def index_video_async(
     hist_threshold = hist_threshold if hist_threshold is not None else _query_float(request, "hist_threshold")
     similarity_threshold = similarity_threshold if similarity_threshold is not None else _query_float(request, "similarity_threshold")
     frame_id_prefix = (frame_id_prefix or _query_string(request, "frame_id_prefix") or "v").strip() or "v"
-    backend = backend if backend is not None else _query_string(request, "backend")
     store_path = store_path if store_path is not None else _query_string(request, "store_path")
     video_start_time = video_start_time if video_start_time is not None else _query_string(request, "video_start_time")
     debug = debug if debug is not None else _query_bool(request, "debug")
@@ -160,7 +157,6 @@ async def index_video_async(
         hist_threshold=hist_threshold,
         similarity_threshold=similarity_threshold,
         frame_id_prefix=frame_id_prefix,
-        backend=backend,
         video_absolute_start_time=video_absolute_start_time,
         debug=bool(debug),
         store_path=store_path,
@@ -196,7 +192,6 @@ async def index_video_async_by_path(req: IndexVideoPathRequest):
         hist_threshold=float(hist_threshold),
         similarity_threshold=req.similarity_threshold,
         frame_id_prefix=req.frame_id_prefix or "v",
-        backend=req.backend,
         video_absolute_start_time=video_absolute_start_time,
         debug=bool(req.debug),
         store_path=req.store_path,
@@ -204,10 +199,10 @@ async def index_video_async_by_path(req: IndexVideoPathRequest):
     return {"job_id": job_id}
 
 @router.post("/add")
-async def add_frames(req: AddFramesRequest, backend: Optional[str] = None, store_path: Optional[str] = Query(default=None)):
+async def add_frames(req: AddFramesRequest, store_path: Optional[str] = Query(default=None)):
     if not req.frames:
         raise HTTPException(status_code=400, detail="frames is empty")
-    store = get_store(backend, persist_path=store_path)
+    store = get_store(persist_path=store_path)
     ts = [float(f.t) for f in req.frames]
     absolute_ts = [float(f.absolute_t) if f.absolute_t is not None else None for f in req.frames]
     imgs = [f.image_base64 for f in req.frames]
@@ -220,13 +215,13 @@ async def add_frames(req: AddFramesRequest, backend: Optional[str] = None, store
     return {"added": out, "count": len(out)}
 
 @router.get("/count")
-async def count_frames(backend: Optional[str] = None, store_path: Optional[str] = Query(default=None)):
-    store = get_store(backend, persist_path=store_path)
+async def count_frames(store_path: Optional[str] = Query(default=None)):
+    store = get_store(persist_path=store_path)
     frames = await store.list_frames()
     return {"count": len(frames)}
 
-async def _reset_store_payload(*, backend: Optional[str], store_path: Optional[str]) -> dict:
-    store = get_store(backend, persist_path=store_path)
+async def _reset_store_payload(*, store_path: Optional[str]) -> dict:
+    store = get_store(persist_path=store_path)
     stats = await store.clear_with_stats()
     return {
         "cleared": int(stats["frames"]),
@@ -240,10 +235,10 @@ async def _reset_store_payload(*, backend: Optional[str], store_path: Optional[s
 
 
 @router.post("/clear")
-async def clear_frames(backend: Optional[str] = None, store_path: Optional[str] = Query(default=None)):
-    return await _reset_store_payload(backend=backend, store_path=store_path)
+async def clear_frames(store_path: Optional[str] = Query(default=None)):
+    return await _reset_store_payload(store_path=store_path)
 
 
 @router.post("/reset_store")
-async def reset_store(backend: Optional[str] = None, store_path: Optional[str] = Query(default=None)):
-    return await _reset_store_payload(backend=backend, store_path=store_path)
+async def reset_store(store_path: Optional[str] = Query(default=None)):
+    return await _reset_store_payload(store_path=store_path)

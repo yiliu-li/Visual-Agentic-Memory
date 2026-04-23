@@ -17,8 +17,6 @@ class Settings(BaseSettings):
     llm_model: str = "google/gemini-3-flash-preview"
     embedding_model: str = "google/gemini-embedding-2-preview"
     
-    # Settings
-    vision_embedding_backend: str = "openrouter_gemini"
     frame_store_path: str = "data/frame_store.sqlite3"
 
     # Overrides
@@ -29,11 +27,6 @@ class Settings(BaseSettings):
     openrouter_embedding_model: str = ""
     openrouter_embedding_dimensions: int = 0
     
-    # Internal Defaults
-    qwen3_vl_embedding_model: str = "Qwen/Qwen3-VL-Embedding-2B"
-    qwen3_vl_device: str = "auto"
-    self_qwen_embedding_api: str = ""
-    self_qwen_embedding_key: str = ""
     enable_retrieval: bool = True
 
     # Video Processing & Filtering Presets

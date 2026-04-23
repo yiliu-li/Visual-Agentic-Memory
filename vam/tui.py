@@ -341,7 +341,6 @@ class AgentTUI:
             hist_threshold=float(settings.video_hist_threshold),
             similarity_threshold=float(settings.video_similarity_threshold),
             frame_id_prefix="v",
-            backend=None,
             video_absolute_start_time=parse_absolute_time(start_time_raw or None),
             debug=False,
         )
@@ -558,7 +557,6 @@ class PlainAgentCLI:
             hist_threshold=float(settings.video_hist_threshold),
             similarity_threshold=float(settings.video_similarity_threshold),
             frame_id_prefix="v",
-            backend=None,
             video_absolute_start_time=parse_absolute_time(start_time_raw or None),
             debug=False,
         )

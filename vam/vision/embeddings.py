@@ -8,15 +8,13 @@ try:
 except Exception:
     torch = None
 
-from vam.config import get_settings
 from vam import prompts
 
 
 @lru_cache(maxsize=1)
 def _backend_instance():
     from .backends import get_backend
-    cfg = get_settings()
-    return get_backend(cfg.vision_embedding_backend)
+    return get_backend()
 
 
 def _require_torch() -> None:
@@ -50,7 +48,3 @@ def embed_images_base64_batch(
     batch_size: int = 8,
 ) -> Tuple[List[List[float]], int]:
     return _backend_instance().embed_images_base64_batch(images_base64_or_data_uris, instruction=instruction, batch_size=batch_size)
-
-
-def backend_name() -> str:
-    return _backend_instance().name

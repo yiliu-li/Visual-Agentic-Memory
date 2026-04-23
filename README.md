@@ -18,7 +18,7 @@ It is designed as a library-first system with an optional API layer. The primary
 - `vam/video.py`: video indexing pipeline used by both the TUI and the server.
 - `vam/retrieval/`: memory store, indexing, search, and persistence.
 - `vam/agent.py`: planning and response orchestration.
-- `vam/vision/`: embedding backend abstraction.
+- `vam/vision/`: embedding client integration.
 - `vam/tui.py`: packaged terminal interface.
 - `vam/server/`: optional FastAPI and WebSocket entry points.
 - `vam/cli.py`: console entry points for `vam-tui` and `vam-server`.
@@ -56,11 +56,11 @@ This installs the Python dependencies and exposes two console commands:
 - `vam-tui`
 - `vam-server`
 
-If you prefer `uv`, the following also works:
+If you prefer `uv`, run the packaged entry points through an ephemeral install:
 
 ```bash
-uv run --python 3.11 vam-tui
-uv run --python 3.11 vam-server
+uv run --with . --python 3.11 vam-tui
+uv run --with . --python 3.11 vam-server
 ```
 
 ## Configuration
@@ -80,7 +80,6 @@ Common optional variables:
 - `LLM_MODEL` default: `google/gemini-3-flash-preview`
 - `EMBEDDING_MODEL` default: `google/gemini-embedding-2-preview`
 - `FRAME_STORE_PATH` default: `data/frame_store.sqlite3`
-- `VISION_EMBEDDING_BACKEND` default: `openrouter_gemini`
 
 ## Usage
 

@@ -365,7 +365,6 @@ async def index_video_async(
     hist_threshold: float,
     similarity_threshold: Optional[float],
     frame_id_prefix: str,
-    backend: Optional[str],
     video_absolute_start_time: Optional[float],
     debug: bool,
     store_path: Optional[str] = None,
@@ -380,7 +379,7 @@ async def index_video_async(
         try:
             enable_event_finalize = str(os.getenv("VAM_ENABLE_EVENT_FINALIZE", "1")).strip() == "1"
             event_finalize_timeout_s = float(os.getenv("VAM_EVENT_FINALIZE_TIMEOUT_S", "120"))
-            store = get_store(backend, persist_path=store_path)
+            store = get_store(persist_path=store_path)
             throttle = {"t": 0.0}
 
             def _prog(phase: str, current: int, total: int) -> None:
