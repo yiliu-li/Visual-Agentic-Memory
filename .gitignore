@@ -68,6 +68,10 @@ frame_store*.json
 *.wav
 *.webm
 
+# Keep README/demo assets under version control
+!img/
+!img/**
+
 # AI Models & Weights
 *.pt
 *.pth

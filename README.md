@@ -1,8 +1,19 @@
 # Visual Agentic Memory (VAM)
 
-Visual Agentic Memory is a Python package for indexing long-horizon video into persistent visual memory and performing agentic retrieval over that memory.
+<p align="center">
+  <img src="./img/teaser.png" alt="Visual Agentic Memory teaser" width="100%" />
+</p>
 
-It is designed as a library-first system with an optional API layer. The primary local interface is a terminal TUI, while FastAPI and WebSocket endpoints remain available for programmatic access.
+> **Visual Agentic Memory (VAM)** is a research system for long-video understanding that transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
+
+VAM is designed for settings where relevant evidence is sparse, temporally distant, and difficult to localize with single-pass video reasoning. Rather than repeatedly scanning the full video, VAM performs online indexing into a persistent memory structure and retrieves only the most relevant evidence for downstream reasoning and verification.
+
+At a high level, VAM provides:
+
+- **Hierarchical Memory** for organizing long videos across multiple granularities, from frames and key moments to scenes and video-level summaries.
+- **Agentic Retrieval** for query-driven evidence search over persistent visual memory instead of exhaustive reprocessing.
+- **Visual Inspection** for re-checking fine-grained evidence before producing the final response.
+- **Grounded Long-Video QA** through a memory-centric workflow that improves efficiency, interpretability, and answer reliability.
 
 ## Core Capabilities
 
