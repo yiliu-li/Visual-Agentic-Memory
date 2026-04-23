@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="./img/logo.png" alt="Visual Agentic Memory logo" width="60%" />
+</p>
+
 # Visual Agentic Memory (VAM)
 
-**Visual Agentic Memory (VAM)** transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
+**Visual Agentic Memory (VAM)** transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection. 
 
 VAM is designed for settings where relevant evidence is sparse, temporally distant, and difficult to localize with single-pass video reasoning. Rather than repeatedly scanning the full video, VAM performs online indexing into a persistent memory structure and retrieves only the most relevant evidence for downstream reasoning and verification.
 
@@ -8,14 +12,12 @@ VAM is designed for settings where relevant evidence is sparse, temporally dista
   <img src="./img/teaser.png" alt="Visual Agentic Memory teaser" width="100%" />
 </p>
 
-## Core Capabilities
+## Key Components
 
-- Frame extraction and filtering with FFmpeg-based video processing.
-- Multi-tier visual memory with persistent SQLite storage.
-- Event document generation from indexed video segments.
-- Summary document generation over custom time ranges.
-- Agentic retrieval with `retrieve` and `summarize` style tool usage.
-- Terminal-first usage through `vam-tui`, with optional server access through `vam-server`.
+- **Online Indexing with Adaptive Deduplication**: A memory construction pipeline that identifies boundary-sensitive moments under strict online streaming constraints using an adaptive thresholding mechanism.
+- **Hierarchical Memory with Parallel Representation**: A structured memory architecture that organizes moments and events across temporal tiers, balancing scalable storage with the preservation of recoverable visual details.
+- **Agentic Retrieval for Grounded Reasoning**: A multi-turn retrieval loop in which an MLLM acts as a retrieval agent to search, inspect, and summarize evidence for auditable reasoning over distant events.
+- **Training-free End-to-end Framework**: An integrated system that supports streaming perception and long-horizon retrieval using pre-trained multimodal components without task-specific retraining.
 
 ## Project Layout
 
