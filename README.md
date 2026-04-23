@@ -5,7 +5,7 @@
 <h1 align="center">Visual Agentic Memory (VAM)</h1>
 
 <p align="center">
-  <b>Visual Agentic Memory (VAM)</b> transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
+  Transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
 </p>
 
 ## Motivation
