@@ -2,9 +2,11 @@
   <img src="./img/logo.png" alt="Visual Agentic Memory logo" width="60%" />
 </p>
 
-# Visual Agentic Memory (VAM)
+<h1 align="center">Visual Agentic Memory (VAM)</h1>
 
-**Visual Agentic Memory (VAM)** transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection. 
+<p align="center">
+  <b>Visual Agentic Memory (VAM)</b> transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
+</p>
 
 VAM is designed for settings where relevant evidence is sparse, temporally distant, and difficult to localize with single-pass video reasoning. Rather than repeatedly scanning the full video, VAM performs online indexing into a persistent memory structure and retrieves only the most relevant evidence for downstream reasoning and verification.
 
