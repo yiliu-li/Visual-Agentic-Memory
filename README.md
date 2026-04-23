@@ -2,9 +2,7 @@
   <img src="./img/logo.png" alt="Visual Agentic Memory logo" width="60%" />
 </p>
 
-<p align="center">
-  <b>Visual Agentic Memory (VAM)</b>
-</p>
+<h1 align="center">Visual Agentic Memory (VAM)</h1>
 
 <p align="center">
   Transforms unconstrained video streams into hierarchical visual memory, supports query-driven agentic retrieval, and grounds answers through visual inspection.
