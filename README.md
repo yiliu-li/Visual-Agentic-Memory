@@ -89,6 +89,7 @@ Common optional variables:
 
 - `LLM_MODEL` default: `google/gemini-3-flash-preview`
 - `EMBEDDING_MODEL` default: `google/gemini-embedding-2-preview`
+- `VIDEO_FPS` default: `0.5`
 - `FRAME_STORE_PATH` default: `data/frame_store.sqlite3`
 
 ## Usage

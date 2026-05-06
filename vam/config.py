@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     enable_retrieval: bool = True
 
     # Video Processing & Filtering Presets
-    video_fps: float = 1.0
+    video_fps: float = 0.5
     video_max_frames: Optional[int] = None
     video_laplacian_min: float = 20.0
     video_diff_threshold: float = 20.0
