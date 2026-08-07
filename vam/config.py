@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     
     # Core
     openrouter_api_key: str = ""
-    llm_model: str = "google/gemini-3-flash-preview"
-    embedding_model: str = "google/gemini-embedding-2-preview"
+    siliconflow_api_key: str = ""
+    llm_model: str = "Qwen/Qwen3-VL-8B-Instruct"
+    embedding_model: str = "Qwen/Qwen3-VL-Embedding-8B"
     
     frame_store_path: str = "data/frame_store.sqlite3"
 
@@ -26,6 +27,14 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     openrouter_embedding_model: str = ""
     openrouter_embedding_dimensions: int = 0
+    openrouter_model_id_vlm: str = ""
+    siliconflow_model_id: str = ""
+    siliconflow_model_id_main: str = "Qwen/Qwen3-VL-8B-Instruct"
+    siliconflow_model_id_light: str = "Qwen/Qwen3.5-9B"
+    siliconflow_model_id_vlm: str = "Qwen/Qwen3-VL-8B-Instruct"
+    siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
+    siliconflow_embedding_model: str = "Qwen/Qwen3-VL-Embedding-8B"
+    siliconflow_embedding_dimensions: int = 0
     
     enable_retrieval: bool = True
 
@@ -54,6 +63,74 @@ class Settings(BaseSettings):
     # LLM Multi-modal limits
     llm_max_image_size_mb: float = 5.0
     llm_max_image_pixels: int = 1280 * 1280
+    # DashScope Base64 video limit: encoded string must be smaller than 10 MB.
+    llm_max_video_base64_mb: float = 10.0
+
+    # Query ablation: attach the latest finalized segment as video context.
+    query_include_latest_segment_video: bool = True
+    query_latest_segment_video_path: str = ""
+
+    @property
+    def provider_name(self) -> str:
+        if self.siliconflow_api_key:
+            return "siliconflow"
+        if self.openrouter_api_key:
+            return "openrouter"
+        return "siliconflow"
+
+    @property
+    def api_key(self) -> str:
+        if self.provider_name == "openrouter":
+            return self.openrouter_api_key
+        return self.siliconflow_api_key or self.openrouter_api_key
+
+    @property
+    def chat_base_url(self) -> str:
+        if self.provider_name == "openrouter":
+            return self.openrouter_base_url or "https://openrouter.ai/api/v1"
+        return self.siliconflow_base_url or "https://api.siliconflow.cn/v1"
+
+    @property
+    def model_id(self) -> str:
+        if self.provider_name == "openrouter":
+            return (
+                self.openrouter_model_id
+                or self.openrouter_model_id_main
+                or self.openrouter_model_id_light
+                or self.openrouter_model_id_vlm
+                or self.llm_model
+            )
+        return (
+            self.siliconflow_model_id
+            or self.siliconflow_model_id_main
+            or self.siliconflow_model_id_light
+            or self.siliconflow_model_id_vlm
+            or self.llm_model
+        )
+
+    @property
+    def model_id_main(self) -> str:
+        return self.model_id
+
+    @property
+    def model_id_light(self) -> str:
+        return self.model_id
+
+    @property
+    def model_id_vlm(self) -> str:
+        return self.model_id
+
+    @property
+    def embedding_model_id(self) -> str:
+        if self.provider_name == "openrouter":
+            return self.openrouter_embedding_model or self.embedding_model
+        return self.siliconflow_embedding_model or self.embedding_model
+
+    @property
+    def embedding_dimensions(self) -> int:
+        if self.provider_name == "openrouter":
+            return int(self.openrouter_embedding_dimensions or 0)
+        return int(self.siliconflow_embedding_dimensions or 0)
 
 _settings: Optional[Settings] = None
 

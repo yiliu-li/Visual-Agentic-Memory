@@ -328,7 +328,7 @@ class FrameStore:
         self._backend = backend
         self._dim: Optional[int] = None
         cfg = get_settings()
-        self._vlm_client = OpenRouterClient(model_id=cfg.openrouter_model_id_light or cfg.openrouter_model_id)
+        self._vlm_client = OpenRouterClient(model_id=cfg.model_id)
         self._persist_path = (persist_path or "").strip()
         self._legacy_json_path = self._persist_path[:-8] + ".json" if self._persist_path.lower().endswith(".sqlite3") else ""
         self._dedup_distance_history: List[float] = []
@@ -2467,6 +2467,20 @@ class FrameStore:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
             clip_path = tmp.name
         try:
+            cfg = get_settings()
+            max_video_base64_bytes = int(float(cfg.llm_max_video_base64_mb) * 1024 * 1024)
+            # Base64 expands binary data by about 4/3; this is only an encode
+            # target. The exact Base64 length is checked after every encode.
+            max_video_bytes = int(max_video_base64_bytes * 0.73)
+            # Retry with progressively smaller/stronger encodes so the resulting
+            # Base64 data URI stays below the provider's request limit.
+            encode_profiles = (
+                (1.00, 28),
+                (0.85, 32),
+                (0.70, 36),
+                (0.55, 40),
+                (0.40, 44),
+            )
             cmd = [
                 "ffmpeg",
                 "-y",
@@ -2487,7 +2501,7 @@ class FrameStore:
                 "-preset",
                 "veryfast",
                 "-crf",
-                "28",
+                str(encode_profiles[0][1]),
                 "-c:a",
                 "aac",
                 "-b:a",
@@ -2496,8 +2510,22 @@ class FrameStore:
                 "+faststart",
                 clip_path,
             ]
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            if proc.returncode != 0 or not os.path.exists(clip_path) or os.path.getsize(clip_path) <= 0:
+            proc = None
+            for scale, quality in encode_profiles:
+                if os.path.exists(clip_path):
+                    os.unlink(clip_path)
+                current = list(cmd)
+                current[current.index("-crf") + 1] = str(quality)
+                if scale < 1.0:
+                    insert_at = current.index("-c:v")
+                    current[insert_at:insert_at] = ["-vf", f"scale=trunc(iw*{scale}/2)*2:trunc(ih*{scale}/2)*2"]
+                proc = subprocess.run(current, capture_output=True, text=True, check=False)
+                if proc.returncode == 0 and os.path.exists(clip_path) and os.path.getsize(clip_path) > 0:
+                    with open(clip_path, "rb") as encoded_file:
+                        payload_size = len(base64.b64encode(encoded_file.read()))
+                    if payload_size + len("data:video/mp4;base64,") < max_video_base64_bytes:
+                        break
+            if proc is None or proc.returncode != 0 or not os.path.exists(clip_path) or os.path.getsize(clip_path) <= 0:
                 err = (proc.stderr or "").strip()
                 if len(err) > 400:
                     err = err[-400:]
@@ -2509,11 +2537,26 @@ class FrameStore:
                 )
                 return None
             clip_size = os.path.getsize(clip_path)
+            with open(clip_path, "rb") as encoded_file:
+                encoded_size = len(base64.b64encode(encoded_file.read())) + len("data:video/mp4;base64,")
+            if encoded_size >= max_video_base64_bytes:
+                print(
+                    "[EventVideo] clip exceeds configured upload limit "
+                    f"base64_bytes={encoded_size} limit={max_video_base64_bytes}"
+                )
+                return None
             print(
                 "[EventVideo] built clip "
                 f"range={clip_start:.1f}s->{clip_end:.1f}s "
-                f"bytes={clip_size}"
+                f"bytes={clip_size} base64_bytes={encoded_size}"
             )
+            cfg = get_settings()
+            if bool(cfg.query_include_latest_segment_video):
+                latest_path = self._latest_segment_video_path()
+                os.makedirs(os.path.dirname(latest_path) or ".", exist_ok=True)
+                os.replace(clip_path, latest_path)
+                print(f"[EventVideo] latest query segment saved path={latest_path}")
+                return _video_file_to_data_uri(latest_path)
             return _video_file_to_data_uri(clip_path)
         finally:
             try:
@@ -2521,6 +2564,23 @@ class FrameStore:
                     os.unlink(clip_path)
             except Exception:
                 pass
+
+    def _latest_segment_video_path(self) -> str:
+        configured = str(get_settings().query_latest_segment_video_path or "").strip()
+        if configured:
+            return os.path.abspath(os.path.expanduser(configured))
+        if self._persist_path:
+            base, _ = os.path.splitext(os.path.abspath(self._persist_path))
+            return f"{base}.latest_segment.mp4"
+        return os.path.abspath("data/latest_segment.mp4")
+
+    def _latest_segment_video_data_uri(self) -> Optional[str]:
+        if not bool(get_settings().query_include_latest_segment_video):
+            return None
+        path = self._latest_segment_video_path()
+        if not os.path.isfile(path) or os.path.getsize(path) <= 0:
+            return None
+        return _video_file_to_data_uri(path)
 
     async def inspect_frames(self, frames: List[FrameRecord], query: str) -> str:
         """
@@ -2540,16 +2600,33 @@ class FrameStore:
         image_uris = [f.image_data_uri for f in frames]
         user_prompt = f"User Query: {query}\n\nPlease examine these {len(frames)} frames and answer the query."
 
+        latest_video = self._latest_segment_video_data_uri()
+        video_uris = [latest_video] if latest_video else []
         messages = [
             {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": build_mm_user_content(user_prompt, image_uris),
+                "content": build_mm_user_content(user_prompt, image_uris, video_uris),
             },
         ]
 
         # Multi-frame Visual Inspection typically needs a slightly larger response budget.
-        text, _ = await self._vlm_client.chat(messages, temperature=0.1, max_tokens=500)
+        try:
+            text, _ = await self._vlm_client.chat(messages, temperature=0.1, max_tokens=500)
+        except Exception as exc:
+            if not video_uris:
+                raise
+            print(f"[QueryVideo] latest segment rejected; retrying with frames only: {exc}")
+            fallback_messages = [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": build_mm_user_content(user_prompt, image_uris),
+                },
+            ]
+            text, _ = await self._vlm_client.chat(
+                fallback_messages, temperature=0.1, max_tokens=500
+            )
         return (text or "").strip()
 
     async def inspect_frame(self, frame: FrameRecord, query: str) -> str:

@@ -19,7 +19,7 @@ class VisionBackend(Protocol):
 
 
 class OpenRouterGeminiBackend:
-    name = "gemini"
+    name = "siliconflow-qwen"
 
     def embed_text(self, text: str, *, instruction: str) -> Tuple[List[float], int]:
         from vam.llm.openrouter import OpenRouterEmbeddingsClient

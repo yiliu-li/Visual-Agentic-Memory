@@ -83,14 +83,29 @@ cp .env.example .env
 
 Set at least:
 
-- `OPENROUTER_API_KEY`
+- `SILICONFLOW_API_KEY`
 
 Common optional variables:
 
-- `LLM_MODEL` default: `google/gemini-3-flash-preview`
-- `EMBEDDING_MODEL` default: `google/gemini-embedding-2-preview`
+- `LLM_MODEL` default: `Qwen/Qwen3-VL-8B-Instruct`
+- `EMBEDDING_MODEL` default: `Qwen/Qwen3-VL-Embedding-8B`
+- `SILICONFLOW_MODEL_ID` default: `Qwen/Qwen3-VL-8B-Instruct`
+- `SILICONFLOW_EMBEDDING_MODEL` default: `Qwen/Qwen3-VL-Embedding-8B`
+- `SILICONFLOW_BASE_URL` default: `https://api.siliconflow.cn/v1`
 - `VIDEO_FPS` default: `0.5`
 - `FRAME_STORE_PATH` default: `data/frame_store.sqlite3`
+
+By default, VAM now targets SiliconFlow's OpenAI-compatible endpoints in single-model mode:
+
+- all chat / routing / visual inspection: `Qwen/Qwen3-VL-8B-Instruct`
+- visual embedding model: `Qwen/Qwen3-VL-Embedding-8B`
+
+Provider selection is now key-driven:
+
+- when `SILICONFLOW_API_KEY` is set, requests use SiliconFlow
+- when only `OPENROUTER_API_KEY` is set, requests use OpenRouter
+
+The legacy OpenRouter variables are still supported for compatibility.
 
 ## Usage
 

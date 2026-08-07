@@ -25,9 +25,7 @@ def append_history(history: List[Dict[str, Any]], *, user_text: str, assistant_t
 
 async def route_text_request(*, transcript: str) -> WsAgentDecision:
     cfg = get_settings()
-    router_client = OpenRouterClient(
-        model_id=cfg.openrouter_model_id_light or cfg.openrouter_model_id_main or cfg.openrouter_model_id
-    )
+    router_client = OpenRouterClient(model_id=cfg.model_id)
     messages = [
         {"role": "system", "content": prompts.ws_agent_system()},
         {"role": "user", "content": transcript},

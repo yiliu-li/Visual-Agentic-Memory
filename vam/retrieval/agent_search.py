@@ -803,7 +803,7 @@ async def search_generator(
 
     store = store_instance or default_store
     cfg = get_settings()
-    planner = OpenRouterClient(model_id=cfg.openrouter_model_id_main or cfg.openrouter_model_id)
+    planner = OpenRouterClient(model_id=cfg.model_id)
 
     t0 = time.time()
     goal = semantic

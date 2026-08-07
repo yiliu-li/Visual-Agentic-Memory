@@ -15,11 +15,9 @@ class LLMRouter:
 
     def __init__(self) -> None:
         cfg = get_settings()
-        # Use dedicated Main LLM and helper-model ids when available; otherwise fall back to one shared model id.
-        main_id = cfg.openrouter_model_id_main or cfg.openrouter_model_id_light or cfg.openrouter_model_id
-        light_id = cfg.openrouter_model_id_light or cfg.openrouter_model_id
-        self.main = OpenRouterClient(model_id=main_id)
-        self.light = OpenRouterClient(model_id=light_id)
+        model_id = cfg.model_id
+        self.main = OpenRouterClient(model_id=model_id)
+        self.light = OpenRouterClient(model_id=model_id)
 
     async def chat(
         self,
