@@ -165,7 +165,7 @@ class OpenRouterClient:
     ) -> Tuple[Optional[str], Dict[str, Any]]:
         cfg = get_settings()
         if not cfg.api_key:
-            raise RuntimeError("SILICONFLOW_API_KEY or OPENROUTER_API_KEY is missing")
+            raise RuntimeError("DASHSCOPE_API_KEY, SILICONFLOW_API_KEY, or OPENROUTER_API_KEY is missing")
 
         base_url = (cfg.chat_base_url or "https://api.siliconflow.cn/v1").rstrip("/")
         url = f"{base_url}/chat/completions"
@@ -202,9 +202,9 @@ class OpenRouterClient:
                     if part.get("type") == "video_url":
                         video_count += 1
 
-        request_timeout_s = _read_timeout_env("SILICONFLOW_REQUEST_TIMEOUT_S", "OPENROUTER_REQUEST_TIMEOUT_S", "240")
-        connect_timeout_s = _read_timeout_env("SILICONFLOW_CONNECT_TIMEOUT_S", "OPENROUTER_CONNECT_TIMEOUT_S", "60")
-        max_retries = _read_retry_env("SILICONFLOW_MAX_RETRIES", "OPENROUTER_MAX_RETRIES", "10")
+        request_timeout_s = _read_timeout_env("DASHSCOPE_REQUEST_TIMEOUT_S", "SILICONFLOW_REQUEST_TIMEOUT_S", "240")
+        connect_timeout_s = _read_timeout_env("DASHSCOPE_CONNECT_TIMEOUT_S", "SILICONFLOW_CONNECT_TIMEOUT_S", "60")
+        max_retries = _read_retry_env("DASHSCOPE_MAX_RETRIES", "SILICONFLOW_MAX_RETRIES", "10")
 
         raw: Dict[str, Any]
         timeout = httpx.Timeout(request_timeout_s, connect=connect_timeout_s)
@@ -250,7 +250,7 @@ class OpenRouterEmbeddingsClient:
     def _headers(self) -> Dict[str, str]:
         cfg = get_settings()
         if not cfg.api_key:
-            raise RuntimeError("SILICONFLOW_API_KEY or OPENROUTER_API_KEY is missing")
+            raise RuntimeError("DASHSCOPE_API_KEY, SILICONFLOW_API_KEY, or OPENROUTER_API_KEY is missing")
         return {
             "Authorization": f"Bearer {cfg.api_key}",
             "Content-Type": "application/json",

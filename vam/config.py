@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Core
     openrouter_api_key: str = ""
     siliconflow_api_key: str = ""
+    dashscope_api_key: str = ""
     llm_model: str = "Qwen/Qwen3-VL-8B-Instruct"
     embedding_model: str = "Qwen/Qwen3-VL-Embedding-8B"
     
@@ -35,6 +36,10 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_embedding_model: str = "Qwen/Qwen3-VL-Embedding-8B"
     siliconflow_embedding_dimensions: int = 0
+    dashscope_model_id: str = "qwen3-vl-plus"
+    dashscope_embedding_model: str = "qwen3-vl-embedding"
+    dashscope_embedding_dimensions: int = 0
+    dashscope_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     
     enable_retrieval: bool = True
 
@@ -72,6 +77,8 @@ class Settings(BaseSettings):
 
     @property
     def provider_name(self) -> str:
+        if self.dashscope_api_key:
+            return "dashscope"
         if self.siliconflow_api_key:
             return "siliconflow"
         if self.openrouter_api_key:
@@ -80,18 +87,24 @@ class Settings(BaseSettings):
 
     @property
     def api_key(self) -> str:
+        if self.provider_name == "dashscope":
+            return self.dashscope_api_key
         if self.provider_name == "openrouter":
             return self.openrouter_api_key
         return self.siliconflow_api_key or self.openrouter_api_key
 
     @property
     def chat_base_url(self) -> str:
+        if self.provider_name == "dashscope":
+            return self.dashscope_base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
         if self.provider_name == "openrouter":
             return self.openrouter_base_url or "https://openrouter.ai/api/v1"
         return self.siliconflow_base_url or "https://api.siliconflow.cn/v1"
 
     @property
     def model_id(self) -> str:
+        if self.provider_name == "dashscope":
+            return self.dashscope_model_id or self.llm_model
         if self.provider_name == "openrouter":
             return (
                 self.openrouter_model_id
@@ -122,12 +135,16 @@ class Settings(BaseSettings):
 
     @property
     def embedding_model_id(self) -> str:
+        if self.provider_name == "dashscope":
+            return self.dashscope_embedding_model or self.embedding_model
         if self.provider_name == "openrouter":
             return self.openrouter_embedding_model or self.embedding_model
         return self.siliconflow_embedding_model or self.embedding_model
 
     @property
     def embedding_dimensions(self) -> int:
+        if self.provider_name == "dashscope":
+            return int(self.dashscope_embedding_dimensions or 0)
         if self.provider_name == "openrouter":
             return int(self.openrouter_embedding_dimensions or 0)
         return int(self.siliconflow_embedding_dimensions or 0)
