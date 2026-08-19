@@ -1,3 +1,5 @@
+
+
 <p align="center">
   <img src="./img/logo.png" alt="Visual Agentic Memory logo" width="60%" />
 </p>
@@ -28,6 +30,7 @@ VAM is designed for settings where relevant evidence is sparse, temporally dista
 - `vam/video.py`: video indexing pipeline used by both the TUI and the server.
 - `vam/retrieval/`: memory store, indexing, search, and persistence.
 - `vam/agent.py`: planning and response orchestration.
+- `vam/llm/`: LLM client and routing integration.
 - `vam/vision/`: embedding client integration.
 - `vam/tui.py`: packaged terminal interface.
 - `vam/server/`: optional FastAPI and WebSocket entry points.
